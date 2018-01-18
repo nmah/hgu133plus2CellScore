@@ -1,0 +1,332 @@
+%\VignetteIndexEntry{R packages: hgu133plus2CellScore}
+%\VignetteDepends{Biobase}
+%\VignetteEngine{knitr::knitr}
+%\VignetteKeywords{hgu133plus2CellScore}
+%\VignettePackage{hgu133plus2CellScore}
+
+\documentclass[a4paper, 10pt]{article}
+\usepackage[toc,page]{appendix}
+\usepackage{hyperref} % \href
+\usepackage{framed} % framed element/text
+\usepackage{rotating} % sidewaysfigure
+\usepackage{pdflscape} % \landscape
+\usepackage[labelfont=bf]{caption} % Figure label in bold
+\usepackage{etoolbox} % \ifboolexpr
+
+%% new commands for string formating, for consistent and
+%% systematic change across the entire text
+%% \pkg{} - for formating R package names
+\newcommand{\pkg}[1]{{\normalfont\fontseries{b}\selectfont #1}}
+%% \prog{} - for formating programming language names like R
+\let\prog=\texttt
+%% \prog{} - for formating names of R data objects in the text
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+%% \vars{} - for new concepts, names of classes ...
+\newcommand{\vars}[1]{\textit{\detokenize{#1}}}
+
+<<label='version', include=FALSE, cache=FALSE>>=
+#suppressPackageStartupMessages(library(Biobase))
+library(Biobase)
+pkg.ver <- package.version("hgu133plus2CellScore")
+@
+
+\title{\pkg{hgu133plus2CellScore} \Sexpr{pkg.ver}: Standard ExpressionSet for CellScore [hgu133plus2]}
+\author{Nancy Mah, Katerina Ta\v{s}kova\\
+\texttt{nancy.l.mah@googlemail.com, katerina@tashkova.org}}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+
+%% for the problem of too long words (usually variable names)
+%% getting over the text margin
+\emergencystretch=5em
+
+<<label='Setup', include=FALSE, cache=FALSE>>=
+
+## Save the current working directory
+dir.main <- getwd()
+## Set the name of the directory in which figures will be saved (if any)
+dir.figures <- 'figures'
+
+## global chunk options
+library(knitr)
+opts_chunk$set(
+    concordance=FALSE,
+    cashe=2,
+    ## cache is only valid with a specific version of R and session info
+    ## cache will be kept for at most a month (re-compute the next month)
+    cache.extra=list(R.version,
+                     sessionInfo(),
+                     format(Sys.Date(), '%Y-%m')
+                     ),
+    autodep=TRUE,
+    fig.path=paste0(dir.figures,"/"),
+    tidy=FALSE,
+    size="small",
+    message=FALSE,
+    warning=FALSE
+)
+options(width=70, promp="R> ", continue="+  ", useFancyQuotes=FALSE)
+@
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+The \pkg{hgu133plus2CellScore} package contains a dataset of manually curated
+transcription profiles \cite{Mah2017} from the Affymetrix Human Genome U133 Plus 2.0) microarray
+platform. This dataset contains expression data from normal tissues or cell
+types, and is used as a reference dataset for evaluation of cell identity
+using the \pkg{CellScore} package.
+
+\section{Installation}
+This vignette assumes that you have already installed \prog{R} ($\geq$
+\Sexpr{paste(R.version$major, R.version$minor, sep=".")})
+and that you have basic working knowledge of \prog{R} \cite{Team2007}. You will
+additionally need to install the core Bioconductor packages if these have not
+already been installed:
+
+<<eval=FALSE>>=
+source("https://bioconductor.org/biocLite.R")
+biocLite()
+@
+
+To install the \pkg{hgu133plus2CellScore} package from the Bioconductor repository:
+
+<<eval=FALSE>>=
+biocLite("hgu133plus2CellScore")
+@
+<<eval=TRUE, echo=FALSE, cache=FALSE>>=
+options(BIOCINSTALLER_ONLINE_DCF=FALSE)
+@
+
+Load the packages and standard dataset:
+<<eval=TRUE, echo=1:2, cache=FALSE, include=TRUE>>=
+library(Biobase)
+library(hgu133plus2CellScore)
+@
+
+The hgu133plus2CellScore dataset is stored in an ExpressionSet object:
+<<eval=TRUE>>=
+eset.std
+@
+
+For detailed examples demonstrating the usage of the \pkg{hgu133plus2CellScore}
+package, please see the tutorial for \pkg{CellScore}.
+
+\section{How the \pkg{hgu133plus2CellScore} data package was assembled}
+Although the process below is described for Affymetrix 3'IVT
+microarrays, the general procedure could be modified to accomodate other data
+from other microarray platforms
+or RNA-seq datasets. We currently do not recommend combining standard datasets
+from multiple platforms as this has not been extensively tested for use
+with the \pkg{CellScore} package.
+
+
+Data wrangling of the standard dataset includes the following steps:
+\begin{enumerate}
+    \item {\it Select suitable samples from one expression platform}
+    \item {\it Manually annotate the samples}
+    \item {\it Process the raw microarray data}
+    \item {\it Microarray data quality control}
+    \item {\it Associate gene annotations to probe IDs}
+    \item {\it Create the ExpressionSet object}
+\end{enumerate}
+
+The following description assumes that the user has some familiarity with
+\prog{R} and expression data analysis in Bioconductor. The vignette
+ is not intended to be a comprehensive tutorial.
+
+\subsection{Select suitable samples from one expression platform}
+Data from a wide variety of cell types or tissues can be searched in public
+databases such as
+\href{https://www.ncbi.nlm.nih.gov/geo/}{Gene Expression Omnibus}(GEO) or
+\href{https://www.ebi.ac.uk/arrayexpress/}{Array Express}. Preferably, the
+samples should be as ``normal'' as possible. For example, neither samples with
+ genetic modifications such as reporter gene construct inserts, nor samples
+ from individuals with disease should be considered as standard samples.
+ Standards are usually tissue samples
+or cell lines; however, carefully selected engineered or derived cell types
+could also be used
+as standard samples if you want to use these cell types as a
+basis for comparison.
+
+\subsection{Manually annotate the samples}
+A \vars{phenotype data frame}, named here as \code{phenotype.data.frame},
+should be created with information about the samples in the expression
+matrix. Samples are in rows, and columns are attributes of the sample.
+The row names of the data frame must be unique
+sample IDs and must exactly match the column names of the \code{callsSub.matrix}
+and \code{normalizedSub.matrix} (see section \ref{section_gene_ann}). The
+\vars{phenotype data frame} must contain the following columns:
+    \begin{itemize}
+        \item \code{experiment_id}: This should be a unique identifier for an
+        experiment, for example a GEO experiment ID or an ArrayExpress
+        experiment ID.
+        \item \code{sample_id}: Sample IDs should be unique, such as the GSM
+        accession numbers from GEO.
+        \item \code{platform_id}: Use a unique ID for each platform, such as
+        GPL accession numbers from GEO.
+        \item \code{cell_type}: Use a short text description here.
+        \item \code{category}: Each sample can be assigned to one of
+        ``standard''/``test''/``NA''. For the purposes of the standard dataset,
+        all samples should be ``standard''.
+        \item \code{general_cell_type}: Use an abbreviation to label the general
+        cell type. Preferably there should be no spaces or punctuation in the
+        abbreviation. For example, FIB for fibroblast.
+        \item \code{donor_tissue}: If the sample is a derived cell type,
+        then enter the abbreviation for the donor cell type.
+        If the sample is standard cell type, then enter the donor tissue
+        from which it was isolated. Otherwise, enter ``NA''.
+        \item \code{sub_cell_type1}: The sub-cell type is a compound term of the
+        general cell type and its donor tissue.
+    \end{itemize}
+    Additional columns are optional. The properties in these columns could be
+    used to color the individual samples in the rug plots generated by the
+    \pkg{CellScore} functions. For example, the samples could be colored
+    by
+    \begin{itemize}
+        \item \code{transition_induction_method}, the method used to engineer
+        the derived cell types, or
+        \item \code{donor_cell_body_location}, the anatomical area from which
+        the donor cell was taken.
+    \end{itemize}
+
+\subsection{Process the raw microarray data}
+The raw data (*.CEL files) should be first background corrected by
+\pkg{affy} \cite{Gautier2004} and normalized using the \pkg{YuGene}
+transform \cite{LeCao2015}, which enables the
+addition of more samples without having to pre-process the whole dataset
+every time a new sample is added. Of course, you are free to use any other
+normalization method as you like (e.g. RMA \cite{Irizarry2003} or fRMA \cite{McCall2010} combined
+with ComBat \cite{Johnson2007}); it is just important
+for consistency that all the standard samples (and
+test samples) are processed in the same manner, and that some form of batch
+correction is applied. Next, the detection p-values were calculated
+using the function \code{affy::mas5calls()}. In the present data package,
+a probeset was considered ``Present'' if the
+detection p-value was less than 0.05, and ``Absent'' if the detection
+p-value was greater than or equal to 0.05.
+
+Here are some example commands on how to process the *.CEL files:
+
+<<eval=FALSE>>=
+## Install affy
+source("https://bioconductor.org/biocLite.R")
+biocLite("affy")
+## Install YuGene
+install.packages("YuGene")
+
+## Load the packages
+library(affy)
+library(YuGene)
+
+## Read in all *.CEL files in the current working directory;
+## if the files are not in the working directory then uncomment
+## the first command line and then read the files. Note that
+## path_to_CEL should be replaced with path to the directory
+## containing the *.CEL files
+
+#setwd(path_to_CEL)
+data <- ReadAffy()
+
+## Background noise correction
+bg.corr <- expresso(data, bg.correct=TRUE, bgcorrect.method="rma",
+                    normalize=FALSE, pmcorrect.method="pmonly",
+                    summary.method="avgdiff")
+## Log2-transform the background corrected data
+bg.corr.log2 <- log2(bg.corr)
+## Perform YuGene transform (that results with
+## normalized expression values between 0 and 1)
+normalized.matrix <- YuGene(bg.corr.log2)
+
+## Calculate mas5 present/absent calls
+co <- mas5calls(data)
+co <- assayData(co)[["se.exprs"]] #extract detection p-values
+pvalue.detection.cutoff <- 0.05
+calls.matrix <- co < pvalue.detection.cutoff
+@
+
+The YuGene-transformed expression matrix (\code{normalized.matrix}) and the
+binary matrix of the present/absent calls (\code{calls.matrix})
+should have the same dimensions, and all row and columns should be in exactly
+the same order. The rownames of each matrix should be probeset IDs.
+
+\subsection{Microarray data quality control}
+Despite careful manual curation of the samples, there can still be outliers
+that are unsuitable to serve as standard samples. For example, a sample may
+be too degraded or wrongly annotated. Diagnostic boxplots, density plots, and
+principal component analysis plots of the raw and/or normalized data may help
+here to identify samples which should be eliminated as standard samples.
+We refer the user to the packages \pkg{affy} and \pkg{arrayQualityMetrics}
+\cite{Kauffmann2009} on how to generate these diagnostic plots.
+
+\subsection{Associate gene annotations to probe IDs}
+\label{section_gene_ann}
+Gene annotation may come from the microarray manufacturer or from annotation
+data packages in Bioconductor (e.g. NCBI (\pkg{org.Hs.eg.db} \cite{Carlson2016})
+or Ensembl (\pkg{biomaRt} \cite{Durinck2005}). To annotate the present data
+package, we used the Annotation Data package \pkg{org.Hs.eg.db}.
+For simplicity, we restricted the final standard expression and calls
+dataset to one Affymetrix probeset per Entrez Gene ID, in order
+to generate a non-redundant gene table.
+In the case that multiple Affymetrix probesets
+mapped to the same gene, the probeset with the highest median expression across all
+samples was chosen to represent that gene. The non-redundant subsets of
+expression and calls matrices (named here as \code{normalizedSub.matrix} and
+\code{callsSub.matrix}, respectively), along with the
+corresponding annotaion data frame (named here as \code{annotation.data.frame}),
+must have the same number of rows and the rows must be in the same order.
+
+Whatever your source of annotation, it should be
+organized in a data frame (\code{annotation.data.frame}) with the following columns:
+
+    \begin{itemize}
+        \item \code{probe_id}: this can be any unique row identifier. The row
+          order must be the same as the \vars{normalizedSub.matrix} and
+          \vars{callsSub.matrix}.
+        \item \code{platform_id}: unique identifier for a microarray platform,
+         such as the GPL accession number from Gene Expression Omnibus.
+        \item \code{gene_symbol}: official gene symbol
+        \item \code{gene_name}: name of the gene
+        \item \code{entrezgene_id}: an integer number used as the Entrez Gene ID
+         from NCBI
+    \end{itemize}
+    Other columns will be ignored.
+
+\subsection{Create the ExpressionSet object}
+\label{section_expset}
+Finally, all the data was assembled as an ExpressionSet object:
+
+<<eval=FALSE>>=
+## Example code:
+## Create a new assayData object from the normalized expression data
+## and the calls matrix
+assay.data <- assayDataNew(exprs=as.matrix(normalizedSub.matrix),
+                           calls=as.matrix(callsSub.matrix) )
+## Create an AnnotatedDataFrame object from the phenotype data frame
+pheno.table <- new("AnnotatedDataFrame", data=phenotype.data.frame)
+## Create an AnnotatedDataFrame object from the annotation data frame
+annotation.table <- new("AnnotatedDataFrame", data=annotation.data.frame)
+## Create the new ExpressionSet object with all the data in one object
+eset.std <- ExpressionSet(assayData=assay.data,
+                          phenoData=pheno.table,
+                          featureData=annotation.table)
+@
+
+DONE!
+
+\clearpage
+\section{R session information}
+<<eval=TRUE, echo=TRUE>>=
+sessionInfo()
+@
+\nocite{Team2007} %% includes references that are not cited in the manuscript
+\bibliographystyle{ieeetr} %% stylename of bibliography # chnaged plain to ieeetr, as it sorts by order of citation
+\bibliography{references} %% name of the bibtex file located in the same dir
+
+
+\end{document}
+

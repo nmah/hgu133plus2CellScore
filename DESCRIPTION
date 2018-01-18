@@ -1,5 +1,5 @@
 Package: hgu133plus2CellScore
-Title: CellScore Standard Cell Types Expression Dataset [hgu133plus2] 
+Title: CellScore Standard Cell Types Expression Dataset [hgu133plus2]
 Version: 0.99.0
 Author: 'Nancy Mah' [aut, cre], 'Katerina Taskova' [aut]
 Maintainer: 'Nancy Mah' <nancy.l.mah@googlemail.com>
@@ -24,11 +24,13 @@ Description: The CellScore Standard Dataset contains expression data from a
  in an expressionSet object.
 Suggests: knitr
 VignetteBuilder: knitr
-biocViews: ExpressionData, MicroarrayData, GEO, ExperimentData, Homo_sapiens_Data,
- Genome, ArrayExpress
+biocViews: ExpressionData, MicroarrayData, GEO, ExperimentData,
+        Homo_sapiens_Data, Genome, ArrayExpress
 Imports: Biobase (>= 2.39.1)
 Depends: R (>= 3.5.0)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 6.0.1
+NeedsCompilation: no
+Packaged: 2018-01-18 15:32:16 UTC; nmah
