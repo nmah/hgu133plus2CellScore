@@ -1,0 +1,34 @@
+Package: hgu133plus2CellScore
+Title: CellScore Standard Cell Types Expression Dataset [hgu133plus2] 
+Version: 0.99.0
+Author: 'Nancy Mah' [aut, cre], 'Katerina Taskova' [aut]
+Maintainer: 'Nancy Mah' <nancy.l.mah@googlemail.com>
+Authors@R: c(person("Nancy", "Mah", role = c("aut", "cre"),
+                    email = "nancy.l.mah@googlemail.com"),
+             person("Katerina", "Taskova", role = "aut",
+                    email = "katerina@tashkova.org"))
+Description: The CellScore Standard Dataset contains expression data from a
+ wide variety of human cells and tissues, which should be used as standard
+ cell types in the calculation of the CellScore. All data was curated from 
+ public databases such as Gene Expression Omnibus (https://www.ncbi.nlm.nih.gov/geo/) or 
+ ArrayExpress (https://www.ebi.ac.uk/arrayexpress/). This standard dataset only 
+ contains data from the Affymetrix GeneChip Human Genome U133 Plus 2.0
+ microarrays. Samples were manually annotated using the database information or
+ consulting the publications in which the datasets originated. The sample 
+ annotations are stored in the phenoData slot of the expressionSet object. 
+ Raw data (CEL files) were processed with the affy package to generate 
+ present/absent calls (mas5calls) and background-subtracted values, which were
+ then normalized by the R-package yugene to yield the final expression values 
+ for the standard expression matrix. The annotation table for the microarray
+ was retrieved from the BioC annotation package hgu133plus2. All data are stored
+ in an expressionSet object.
+Suggests: knitr
+VignetteBuilder: knitr
+biocViews: ExpressionData, MicroarrayData, GEO, ExperimentData, Homo_sapiens_Data,
+ Genome, ArrayExpress
+Imports: Biobase (>= 2.39.1)
+Depends: R (>= 3.5.0)
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
