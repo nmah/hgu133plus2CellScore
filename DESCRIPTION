@@ -1,6 +1,6 @@
 Package: hgu133plus2CellScore
 Title: CellScore Standard Cell Types Expression Dataset [hgu133plus2]
-Version: 0.99.0
+Version: 0.99.1
 Author: 'Nancy Mah' [aut, cre], 'Katerina Taskova' [aut]
 Maintainer: 'Nancy Mah' <nancy.l.mah@googlemail.com>
 Authors@R: c(person("Nancy", "Mah", role = c("aut", "cre"),
